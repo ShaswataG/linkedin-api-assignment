@@ -27,16 +27,26 @@ const EMPLOYMENT_TYPES = new Set([
 
 const isEmploymentType = (s: string) => EMPLOYMENT_TYPES.has(s.trim());
 
-function readPlace(leaf: string): { location?: string; locationType?: string } | null {
+function readPlace(
+  leaf: string,
+  options: { allowBarePlaceName?: boolean } = {},
+): { location?: string; locationType?: string } | null {
   const viaArrangement = extractLocation([leaf]);
   if (viaArrangement.location || viaArrangement.locationType) {
     return { location: viaArrangement.location, locationType: viaArrangement.locationType };
   }
   const trimmed = leaf.trim();
+  if (trimmed.length > 80 || /[.!?]$/.test(trimmed)) return null;
+
+  if (trimmed.includes(',') || /\b(Area|Region|Metropolitan|Greater)\b/.test(trimmed)) {
+    return { location: trimmed };
+  }
+
   if (
-    trimmed.length <= 80 &&
-    !/[.!?]$/.test(trimmed) &&
-    (trimmed.includes(',') || /\b(Area|Region|Metropolitan|Greater)\b/.test(trimmed))
+    options.allowBarePlaceName &&
+    trimmed.length <= 40 &&
+    trimmed.split(/\s+/).length <= 4 &&
+    /^[A-Z][^\s]*(\s+[A-Z][^\s]*)*$/.test(trimmed)
   ) {
     return { location: trimmed };
   }
