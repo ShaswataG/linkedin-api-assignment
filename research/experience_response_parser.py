@@ -1,7 +1,7 @@
 import json
 import base64
 
-HAR_PATH = '*.har'  # change per profile
+HAR_PATH = './har_collection/sp35.har'  # change per profile
 COMPONENT_ID = 'profileCardsExperienceOnly'
 OUTPUT_PATH = 'experience-response.txt'
 
