@@ -21,6 +21,17 @@ const PRONOUN_PATTERN = /^[A-Za-z]{2,12}\/[A-Za-z]{2,12}$/;
 
 const BARE_SEPARATOR = /^[·•|]$/;
 
+const CHROME_PATTERNS: RegExp[] = [
+  /^Verify in \d+ minutes?$/i,
+  /^Verified$/i,
+  /^Open to$/i,
+  /^Add (profile )?section$/i,
+  /^Enhance profile$/i,
+  /^Get started$/i,
+];
+
+const isChrome = (leaf: string) => CHROME_PATTERNS.some((p) => p.test(leaf.trim()));
+
 const CONTACT_INFO = 'Contact info';
 
 function preloadedImage(headHtml: string, kind: string): string | undefined {
@@ -68,17 +79,31 @@ export function parseTopcard(documentHtml: string, warnings: string[] = []): Top
     return parts.length > 0 && parts.every((p) => linkedEntities.has(p));
   };
 
-  const candidates = leaves.slice(1, Math.max(1, locationIndex));
-  const pronouns = candidates.find((c) => PRONOUN_PATTERN.test(c));
-  const affiliationsLine = candidates.find(isAffiliationsLine);
-  const headline = candidates.find(
-    (c) =>
-      c !== pronouns &&
-      c !== affiliationsLine &&
-      c !== name &&
-      !BARE_SEPARATOR.test(c) &&
-      !isAffiliationsLine(c),
-  );
+  let cursor = locationIndex - 1;
+
+  let affiliationsLine: string | undefined;
+  if (cursor > 0 && isAffiliationsLine(leaves[cursor])) {
+    affiliationsLine = leaves[cursor];
+    cursor -= 1;
+  }
+
+  // `cursor > 0` keeps leaves[0] — the name — from ever being read as the
+  // headline on a profile that has none.
+  let headline: string | undefined;
+  if (cursor > 0) {
+    const candidate = leaves[cursor];
+    const usable =
+      candidate !== name &&
+      !PRONOUN_PATTERN.test(candidate) &&
+      !BARE_SEPARATOR.test(candidate) &&
+      !isChrome(candidate);
+    if (usable) headline = candidate;
+  }
+
+  // Pronouns can sit anywhere between the name and the headline.
+  const pronouns = leaves
+    .slice(1, Math.max(1, locationIndex))
+    .find((c) => PRONOUN_PATTERN.test(c));
 
   if (name && leaves[0] && leaves[0] !== name) {
     warnings.push(`topcard: <title> name "${name}" does not match first heading "${leaves[0]}"`);

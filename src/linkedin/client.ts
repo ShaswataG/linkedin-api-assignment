@@ -42,3 +42,25 @@ export async function fetchProfileCard(
 
   return res.text();
 }
+
+export async function fetchProfileDocument(
+  vanityName: string,
+  session: LinkedInSession,
+): Promise<string> {
+  const res = await fetch(`https://www.linkedin.com/in/${encodeURIComponent(vanityName)}/`, {
+    method: 'GET',
+    headers: {
+      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'accept-language': 'en-US,en;q=0.9',
+      cookie: session.cookie,
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`LinkedIn returned ${res.status} for profile document (${vanityName})`);
+  }
+
+  return res.text();
+}
