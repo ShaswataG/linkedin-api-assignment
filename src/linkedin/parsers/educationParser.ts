@@ -18,7 +18,7 @@ export function parseEducation(cardTree: unknown): EducationEntry[] {
   const leaves = extractOrderedTextLeaves(subtree);
   const withoutHeader = leaves[0] === 'Education' ? leaves.slice(1) : leaves;
 
-  const entries = segmentFixedFieldEntries(withoutHeader, 2);
+  const entries = segmentFixedFieldEntries(withoutHeader, 2, { recoverTrailingDatelessEntry: true });
 
   return entries.map((e) => {
     const dashMatch = e.dateRange ? e.dateRange.match(/^(.*?)\s*[-–]\s*(.*)$/) : null;

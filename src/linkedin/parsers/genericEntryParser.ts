@@ -6,7 +6,11 @@ export interface GenericEntry {
   extras: string[];
 }
 
-export function segmentFixedFieldEntries(leaves: string[], leadingFieldCount: number): GenericEntry[] {
+export function segmentFixedFieldEntries(
+  leaves: string[],
+  leadingFieldCount: number,
+  options: { recoverTrailingDatelessEntry?: boolean } = {},
+): GenericEntry[] {
   const entries: GenericEntry[] = [];
   let i = 0;
 
@@ -39,14 +43,16 @@ export function segmentFixedFieldEntries(leaves: string[], leadingFieldCount: nu
     i += 1;
   }
 
-  const last = entries[entries.length - 1];
-  if (last && last.extras.length >= leadingFieldCount) {
-    const splitPoint = last.extras.length - leadingFieldCount;
-    const possibleTrailingFields = last.extras.slice(splitPoint);
-    const stillHasNoDate = possibleTrailingFields.every((f) => !isDate(f));
-    if (stillHasNoDate) {
-      last.extras = last.extras.slice(0, splitPoint);
-      entries.push({ fields: possibleTrailingFields, dateRange: '', extras: [] });
+  if (options.recoverTrailingDatelessEntry) {
+    const last = entries[entries.length - 1];
+    if (last && last.extras.length >= leadingFieldCount) {
+      const splitPoint = last.extras.length - leadingFieldCount;
+      const possibleTrailingFields = last.extras.slice(splitPoint);
+      const stillHasNoDate = possibleTrailingFields.every((f) => !isDate(f));
+      if (stillHasNoDate) {
+        last.extras = last.extras.slice(0, splitPoint);
+        entries.push({ fields: possibleTrailingFields, dateRange: '', extras: [] });
+      }
     }
   }
 
