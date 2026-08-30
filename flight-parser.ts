@@ -112,6 +112,10 @@ export function collectValuesByKey(
 export function extractOrderedTextLeaves(tree: unknown): string[] {
   const leaves: string[] = [];
 
+  function isFlightSentinel(value: string): boolean {
+    return value === '$undefined' || value === '$null';
+  }
+
   function walk(node: unknown): void {
     if (node && typeof node === 'object' && '__clientComponentRef' in node) {
       return;
@@ -125,7 +129,11 @@ export function extractOrderedTextLeaves(tree: unknown): string[] {
     if (node && typeof node === 'object') {
       for (const [key, value] of Object.entries(node)) {
         if (key === 'children') {
-          if (typeof value === 'string' && value.trim().length > 0) {
+          if (
+            typeof value === 'string' &&
+            value.trim().length > 0 &&
+            !isFlightSentinel(value)
+          ) {
             leaves.push(value.trim());
             continue;
           }
@@ -135,7 +143,11 @@ export function extractOrderedTextLeaves(tree: unknown): string[] {
               walk(value);
             } else {
               for (const item of value) {
-                if (typeof item === 'string' && item.trim().length > 0) {
+                if (
+                  typeof item === 'string' &&
+                  item.trim().length > 0 &&
+                  !isFlightSentinel(item)
+                ) {
                   leaves.push(item.trim());
                 } else {
                   walk(item);
