@@ -1,8 +1,7 @@
-import { decodeFlightResponse, extractOrderedTextLeaves } from '../../src/linkedin/flightDecoder';
-import { findSectionSubtree, SECTION_MARKER_SUFFIXES } from '../../src/linkedin/sectionDispatcher';
-import { segmentFixedFieldEntries } from '../../src/linkedin/parsers/genericEntryParser';
+import { decodeFlightResponse } from '../../src/linkedin/flightDecoder';
 import { fetchProfileCard } from '../../src/linkedin/client';
-
+import { parseEducation } from '../../src/linkedin/parsers/educationParser';
+ 
 async function main() {
   const session = {
     cookie: 'li_at=; JSESSIONID="ajax:"', // paste here real session values
@@ -14,20 +13,12 @@ async function main() {
     'com.linkedin.sdui.generated.profile.dsl.impl.profileCardsBelowActivityPart1WithoutExp',
     session,
   );
-
   const tree = decodeFlightResponse(raw);
-
-  const eduSubtree = findSectionSubtree(tree, SECTION_MARKER_SUFFIXES.education);
-  const eduLeaves = eduSubtree ? extractOrderedTextLeaves(eduSubtree) : [];
-  console.log('Education leaves:', eduLeaves);
-  console.log('Education entries:', segmentFixedFieldEntries(eduLeaves, 2));
-
-  const projectsSubtree = findSectionSubtree(tree, SECTION_MARKER_SUFFIXES.projects);
-  const projectLeaves = projectsSubtree ? extractOrderedTextLeaves(projectsSubtree) : [];
-  console.log('Project leaves:', projectLeaves);
-  console.log('Project entries:', segmentFixedFieldEntries(projectLeaves, 1));
+  const education = parseEducation(tree);
+ 
+  console.log(JSON.stringify(education, null, 2));
 }
-
+ 
 main().catch((err) => {
   console.error(err);
   process.exit(1);
