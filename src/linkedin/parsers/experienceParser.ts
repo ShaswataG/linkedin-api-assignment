@@ -75,7 +75,7 @@ function buildPosition(title: string, dateRange: string, extras: string[]): Posi
   let rest = extras;
   let place: { location?: string; locationType?: string } | null = null;
   if (rest.length > 0) {
-    place = readPlace(rest[0]);
+    place = readPlace(rest[0], { allowBarePlaceName: true });
     if (place) rest = rest.slice(1);
   }
 
