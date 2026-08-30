@@ -1,6 +1,7 @@
 import { decodeFlightResponse, extractOrderedTextLeaves } from '../../src/linkedin/flightDecoder';
-import { fetchProfileCard } from '../../src/linkedin/client';
+import { findSectionSubtree, SECTION_MARKER_SUFFIXES } from '../../src/linkedin/sectionDispatcher';
 import { segmentFixedFieldEntries } from '../../src/linkedin/parsers/genericEntryParser';
+import { fetchProfileCard } from '../../src/linkedin/client';
 
 async function main() {
   const session = {
@@ -15,15 +16,16 @@ async function main() {
   );
 
   const tree = decodeFlightResponse(raw);
-  const leaves = extractOrderedTextLeaves(tree);
-  leaves.forEach((text, i) => {
-    console.log(`${i}: "${text}"`);
-  });
-  console.log('leaf count:', leaves.length);
-  console.log('lengths:', leaves.map((l) => l.length));
 
-  console.log(segmentFixedFieldEntries(leaves, 2)); // Education attempt
-  console.log(segmentFixedFieldEntries(leaves, 1)); // Projects attempt
+  const eduSubtree = findSectionSubtree(tree, SECTION_MARKER_SUFFIXES.education);
+  const eduLeaves = eduSubtree ? extractOrderedTextLeaves(eduSubtree) : [];
+  console.log('Education leaves:', eduLeaves);
+  console.log('Education entries:', segmentFixedFieldEntries(eduLeaves, 2));
+
+  const projectsSubtree = findSectionSubtree(tree, SECTION_MARKER_SUFFIXES.projects);
+  const projectLeaves = projectsSubtree ? extractOrderedTextLeaves(projectsSubtree) : [];
+  console.log('Project leaves:', projectLeaves);
+  console.log('Project entries:', segmentFixedFieldEntries(projectLeaves, 1));
 }
 
 main().catch((err) => {
