@@ -171,6 +171,8 @@ export interface Position {
   startDate: string;
   endDate: string;
   duration?: string;
+  location?: string;
+  locationType?: string;
   description?: string;
 }
 
@@ -184,6 +186,28 @@ export interface ExperienceEntry {
 function splitMiddotField(raw: string): { primary: string; secondary?: string } {
   const parts = raw.split('·').map((p) => p.trim()).filter(Boolean);
   return { primary: parts[0] ?? raw.trim(), secondary: parts[1] };
+}
+
+function splitDateRange(raw: string): { startDate: string; endDate: string; duration?: string } {
+  const [rangePart, durationPart] = raw.split('·').map((s) => s.trim());
+  const dashMatch = rangePart.match(/^(.*?)\s*[-–]\s*(.*)$/);
+  if (dashMatch) {
+    return { startDate: dashMatch[1].trim(), endDate: dashMatch[2].trim(), duration: durationPart };
+  }
+  return { startDate: '', endDate: '', duration: raw };
+}
+
+const LOCATION_TYPE_VALUES = new Set(['On-site', 'Remote', 'Hybrid']);
+
+function extractLocation(
+  extras: string[],
+): { location?: string; locationType?: string; remainingExtras: string[] } {
+  if (extras.length === 0) return { remainingExtras: extras };
+  const { primary, secondary } = splitMiddotField(extras[0]);
+  if (secondary && LOCATION_TYPE_VALUES.has(secondary)) {
+    return { location: primary, locationType: secondary, remainingExtras: extras.slice(1) };
+  }
+  return { remainingExtras: extras };
 }
 
 const DURATION_ONLY_PATTERN = /^~?\d+\s*(yrs?|years?)(\s+\d+\s*(mos?|months?))?$|^~?\d+\s*(mos?|months?)$/i;
@@ -231,7 +255,18 @@ export function segmentExperienceLeaves(
           extras.push(leaves[i]);
           i += 1;
         }
-        positions.push({ title, startDate: '', endDate: '', duration: dateRange, description: extras.join(' ') });
+
+        const { location, locationType, remainingExtras } = extractLocation(extras);
+        const { startDate, endDate, duration } = splitDateRange(dateRange);
+        positions.push({
+          title,
+          startDate,
+          endDate,
+          duration,
+          location,
+          locationType,
+          description: remainingExtras.join(' '),
+        });
       }
 
       const { primary: companyNameOnly } = splitMiddotField(companyName);
@@ -252,10 +287,22 @@ export function segmentExperienceLeaves(
       }
 
       const { primary: companyName, secondary: employmentType } = splitMiddotField(companyRaw);
+      const { location, locationType, remainingExtras } = extractLocation(extras);
+      const { startDate, endDate, duration } = splitDateRange(dateRange);
       entries.push({
         companyName,
         employmentType,
-        positions: [{ title, startDate: '', endDate: '', duration: dateRange, description: extras.join(' ') }],
+        positions: [
+          {
+            title,
+            startDate,
+            endDate,
+            duration,
+            location,
+            locationType,
+            description: remainingExtras.join(' '),
+          },
+        ],
       });
       continue;
     }
