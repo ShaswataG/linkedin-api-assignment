@@ -166,28 +166,102 @@ export function extractOrderedTextLeaves(tree: unknown): string[] {
   return leaves;
 }
 
+export interface Position {
+  title: string;
+  startDate: string;
+  endDate: string;
+  duration?: string;
+  description?: string;
+}
+
+export interface ExperienceEntry {
+  companyName: string;
+  employmentType?: string;
+  totalDuration?: string;
+  positions: Position[];
+}
+
+function splitMiddotField(raw: string): { primary: string; secondary?: string } {
+  const parts = raw.split('·').map((p) => p.trim()).filter(Boolean);
+  return { primary: parts[0] ?? raw.trim(), secondary: parts[1] };
+}
+
+const DURATION_ONLY_PATTERN = /^~?\d+\s*(yrs?|years?)(\s+\d+\s*(mos?|months?))?$|^~?\d+\s*(mos?|months?)$/i;
+
 export function segmentExperienceLeaves(
   leaves: string[],
-): Array<{ title: string; companyLine: string; dateRange: string; extras: string[] }> {
-  const entries: Array<{ title: string; companyLine: string; dateRange: string; extras: string[] }> = [];
-  let current: (typeof entries)[number] | null = null;
+): ExperienceEntry[] {
+  const entries: ExperienceEntry[] = [];
   let i = 0;
 
-  while (i < leaves.length) {
-    const isEntryStart =
-      i + 2 < leaves.length &&
-      !DATE_RANGE_PATTERN.test(leaves[i]) &&
-      !DATE_RANGE_PATTERN.test(leaves[i + 1]) &&
-      DATE_RANGE_PATTERN.test(leaves[i + 2]);
+  const isDate = (s: string) => DATE_RANGE_PATTERN.test(s);
+  const isDuration = (s: string) => DURATION_ONLY_PATTERN.test(s);
 
-    if (isEntryStart) {
-      current = { title: leaves[i], companyLine: leaves[i + 1], dateRange: leaves[i + 2], extras: [] };
-      entries.push(current);
-      i += 3;
-    } else {
-      current?.extras.push(leaves[i]);
-      i += 1;
+  const isGroupedStart = (idx: number) =>
+    idx + 3 < leaves.length &&
+    !isDate(leaves[idx]) &&
+    isDuration(leaves[idx + 1]) &&
+    !isDate(leaves[idx + 2]) &&
+    isDate(leaves[idx + 3]);
+
+  const isFlatStart = (idx: number) =>
+    idx + 2 < leaves.length &&
+    !isDate(leaves[idx]) &&
+    !isDuration(leaves[idx + 1]) &&
+    !isDate(leaves[idx + 1]) &&
+    isDate(leaves[idx + 2]);
+
+  const isRolePairStart = (idx: number) =>
+    idx + 1 < leaves.length && !isDate(leaves[idx]) && isDate(leaves[idx + 1]);
+
+  while (i < leaves.length) {
+    if (isGroupedStart(i)) {
+      const companyName = leaves[i];
+      const totalDuration = leaves[i + 1];
+      i += 2;
+
+      const positions: Position[] = [];
+      while (i < leaves.length && isRolePairStart(i)) {
+        const title = leaves[i];
+        const dateRange = leaves[i + 1];
+        i += 2;
+
+        const extras: string[] = [];
+        while (i < leaves.length && !isRolePairStart(i) && !isFlatStart(i) && !isGroupedStart(i)) {
+          extras.push(leaves[i]);
+          i += 1;
+        }
+        positions.push({ title, startDate: '', endDate: '', duration: dateRange, description: extras.join(' ') });
+      }
+
+      const { primary: companyNameOnly } = splitMiddotField(companyName);
+      entries.push({ companyName: companyNameOnly, totalDuration, positions });
+      continue;
     }
+
+    if (isFlatStart(i)) {
+      const title = leaves[i];
+      const companyRaw = leaves[i + 1];
+      const dateRange = leaves[i + 2];
+      i += 3;
+
+      const extras: string[] = [];
+      while (i < leaves.length && !isFlatStart(i) && !isGroupedStart(i)) {
+        extras.push(leaves[i]);
+        i += 1;
+      }
+
+      const { primary: companyName, secondary: employmentType } = splitMiddotField(companyRaw);
+      entries.push({
+        companyName,
+        employmentType,
+        positions: [{ title, startDate: '', endDate: '', duration: dateRange, description: extras.join(' ') }],
+      });
+      continue;
+    }
+
+    // Leading noise (e.g. the literal section header text) — discard.
+    i += 1;
   }
 
   return entries;
