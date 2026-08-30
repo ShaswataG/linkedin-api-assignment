@@ -15,7 +15,9 @@ export interface EducationEntry {
 const GRADE_PREFIX = /^Grade:\s*/i;
 const ACTIVITIES_PREFIX = /^Activities and societies:\s*/i;
 
-const isDateLeaf = (s: string) => DATE_LEAF_PATTERN.test(s);
+const SINGLE_DATE_LEAF_PATTERN = /^([A-Za-z]{3,9}\.?\s?\d{4}|\d{4})$/;
+
+const isDateLeaf = (s: string) => DATE_LEAF_PATTERN.test(s) || SINGLE_DATE_LEAF_PATTERN.test(s);
 
 const isLabelledExtra = (s: string) => GRADE_PREFIX.test(s) || ACTIVITIES_PREFIX.test(s);
 
@@ -57,7 +59,11 @@ export function parseEducation(cardTree: unknown): EducationEntry[] {
     const gradeLeaf = extras.find((x) => GRADE_PREFIX.test(x));
     const activitiesLeaf = extras.find((x) => ACTIVITIES_PREFIX.test(x));
     const description = extras.filter((x) => !isLabelledExtra(x)).join(' ');
-    const { startDate, endDate } = dateRange ? splitDateRange(dateRange) : { startDate: '', endDate: '' };
+    const { startDate, endDate } = !dateRange
+      ? { startDate: '', endDate: '' }
+      : SINGLE_DATE_LEAF_PATTERN.test(dateRange)
+        ? { startDate: '', endDate: dateRange }
+        : splitDateRange(dateRange);
     return {
       institution: header[0] ?? '',
       degree: header[1],
@@ -89,10 +95,15 @@ export function parseEducation(cardTree: unknown): EducationEntry[] {
 
   const last = entries[entries.length - 1];
   const trailing = body.slice(dateIndices[dateIndices.length - 1] + 1);
+
+  const MAX_TRAILING_FOR_RECOVERY = 4;
+
   const recovered: string[] = [];
-  for (let i = trailing.length - 1; i >= 0 && recovered.length < MAX_HEADER_LEAVES; i--) {
-    if (!looksLikeHeaderLeaf(trailing[i])) break;
-    recovered.unshift(trailing[i]);
+  if (trailing.length <= MAX_TRAILING_FOR_RECOVERY) {
+    for (let i = trailing.length - 1; i >= 0 && recovered.length < MAX_HEADER_LEAVES; i--) {
+      if (!looksLikeHeaderLeaf(trailing[i])) break;
+      recovered.unshift(trailing[i]);
+    }
   }
   if (recovered.length > 0) {
     const keptExtras = trailing.slice(0, trailing.length - recovered.length);
