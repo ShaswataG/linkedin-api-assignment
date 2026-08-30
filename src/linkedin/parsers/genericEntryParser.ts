@@ -9,12 +9,13 @@ export interface GenericEntry {
 export function segmentFixedFieldEntries(
   leaves: string[],
   leadingFieldCount: number,
-  options: { recoverTrailingDatelessEntry?: boolean } = {},
+  options: { recoverTrailingDatelessEntry?: boolean; isAnchor?: (s: string) => boolean } = {},
 ): GenericEntry[] {
   const entries: GenericEntry[] = [];
   let i = 0;
 
-  const isDate = (s: string) => DATE_RANGE_PATTERN.test(s);
+
+  const isDate = options.isAnchor ?? ((s: string) => DATE_RANGE_PATTERN.test(s));
 
   const isEntryStart = (idx: number) => {
     if (idx + leadingFieldCount >= leaves.length) return false;
