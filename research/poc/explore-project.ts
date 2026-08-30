@@ -1,28 +1,22 @@
 import { decodeFlightResponse } from '../../src/linkedin/flightDecoder';
-import { fetchProfileCard } from '../../src/linkedin/client';
+import { getSectionTotalCount, SECTION_MARKER_SUFFIXES } from '../../src/linkedin/sectionDispatcher';
 import { parseProjects } from '../../src/linkedin/parsers/projectParser';
+import { loadCardFromHar, PART1_WITHOUT_EXP } from './loadCardFromHar';
 
-const profileId = '';
+// Regression fixture: profile `sp35` (known-good in CLAUDE.md — 2 entries,
+// "Project OneTap" and "Studydeck", of 3 total). Pass the shaswata-gogoi HAR
+// as an argument for the empty-section control, where Projects is absent.
+const HAR_PATH = process.argv[2] ?? 'har_collection/padamkataria_full_profile.har';
 
-async function main() {
-  const session = {
-    cookie: 'li_at=...; JSESSIONID="ajax:..."',
-    csrfToken: 'ajax:...',
-  };
-
-  const raw = await fetchProfileCard(
-    profileId,
-    'com.linkedin.sdui.generated.profile.dsl.impl.profileCardsBelowActivityPart1WithoutExp',
-    session,
-  );
-
+function main() {
+  const raw = loadCardFromHar(HAR_PATH, PART1_WITHOUT_EXP);
   const tree = decodeFlightResponse(raw);
   const projects = parseProjects(tree);
 
+  console.log(`HAR: ${HAR_PATH}`);
+  console.log(`entries: ${projects.length}`);
+  console.log(`totalCount: ${getSectionTotalCount(tree, SECTION_MARKER_SUFFIXES.projects)}`);
   console.log(JSON.stringify(projects, null, 2));
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main();

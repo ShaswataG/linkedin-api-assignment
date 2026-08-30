@@ -1,29 +1,24 @@
-import { decodeFlightResponse, extractOrderedTextLeaves } from '../../src/linkedin/flightDecoder';
-import { fetchProfileCard } from '../../src/linkedin/client';
-import { segmentExperienceLeaves } from '../../src/linkedin/parsers/experienceParser';
+import { decodeFlightResponse } from '../../src/linkedin/flightDecoder';
+import { parseExperience } from '../../src/linkedin/parsers/experienceParser';
+import { loadCardFromHar } from './loadCardFromHar';
 
-const profileId = '';
+// Regression fixtures: `sp35` (known-good in CLAUDE.md — 5 entries, 2 grouped)
+// and `shaswata-gogoi` (5 entries, 2 grouped, exercising the company-level
+// location and standalone employment-type variants).
+const HAR_PATH = process.argv[2] ?? 'har_collection/arpitbhayani_full_profile.har';
 
-async function main() {
-  const session = {
-    cookie: 'li_at=...; JSESSIONID="ajax:..."', // paste your real session values
-    csrfToken: 'ajax:...', // must match JSESSIONID
-  };
-
-  const raw = await fetchProfileCard(
-    profileId, // use a profile you already have known-good expected output for
-    'com.linkedin.sdui.generated.profile.dsl.impl.profileCardsExperienceOnly',
-    session,
-  );
-
+function main() {
+  const raw = loadCardFromHar(HAR_PATH, 'profileCardsExperienceOnly');
   const tree = decodeFlightResponse(raw);
-  const leaves = extractOrderedTextLeaves(tree);
-  const entries = segmentExperienceLeaves(leaves);
 
+  const warnings: string[] = [];
+  const entries = parseExperience(tree, warnings);
+
+  console.log(`HAR: ${HAR_PATH}`);
+  console.log(`entries: ${entries.length}`);
+  console.log(`warnings: ${warnings.length}`);
+  warnings.forEach((w) => console.log(`  ! ${w}`));
   console.log(JSON.stringify(entries, null, 2));
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main();
