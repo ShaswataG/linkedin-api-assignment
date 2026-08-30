@@ -1,3 +1,5 @@
+import { extractOrderedTextLeaves } from './flightDecoder';
+
 export const SECTION_MARKER_SUFFIXES = {
   about: 'About',
   education: 'EducationTopLevelSection',
@@ -61,6 +63,56 @@ export function findSectionSubtree(tree: unknown, markerSuffix: string): unknown
 
   walk(tree);
   return found;
+}
+
+export function getSectionTotalCount(
+  cardTree: unknown,
+  markerSuffix: string,
+): number | undefined {
+  const countIdPattern = new RegExp(`^${markerSuffix}.*-count$`);
+  let found: number | undefined;
+
+  function walk(node: unknown): void {
+    if (found !== undefined) return;
+
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        walk(item);
+        if (found !== undefined) return;
+      }
+      return;
+    }
+
+    if (node && typeof node === 'object') {
+      const record = node as Record<string, unknown>;
+      // Shape: { key: { key: { value: { $case: 'id', id } } },
+      //          value: { $case: 'intValue', intValue } }
+      const id = (((record.key as any)?.key)?.value)?.id;
+      const intValue = (record.value as any)?.intValue;
+      if (typeof id === 'string' && countIdPattern.test(id) && typeof intValue === 'number') {
+        found = intValue;
+        return;
+      }
+      for (const value of Object.values(record)) {
+        walk(value);
+        if (found !== undefined) return;
+      }
+    }
+  }
+
+  walk(cardTree);
+  if (found !== undefined) return found;
+
+  const subtree = findSectionSubtree(cardTree, markerSuffix);
+  if (!subtree) return undefined;
+  const headerMatch = extractOrderedTextLeaves(subtree)[0]?.match(/\((\d+)\)\s*$/);
+  return headerMatch ? Number(headerMatch[1]) : undefined;
+}
+
+export function sectionHasContent(cardTree: unknown, markerSuffix: string): boolean {
+  const subtree = findSectionSubtree(cardTree, markerSuffix);
+  if (!subtree) return false;
+  return extractOrderedTextLeaves(subtree).length > 0;
 }
 
 export function findEntityCollectionItems(subtree: unknown): unknown[] {

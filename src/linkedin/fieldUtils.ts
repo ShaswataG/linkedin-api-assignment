@@ -1,6 +1,13 @@
 export const DATE_RANGE_PATTERN =
   /([A-Za-z]{3,9}\.?\s?\d{4}|\d{4})\s*[-–]\s*(Present|[A-Za-z]{3,9}\.?\s?\d{4}|\d{4})/;
 
+export const DATE_LEAF_PATTERN =
+  /^([A-Za-z]{3,9}\.?\s?\d{4}|\d{4})\s*[-–]\s*(Present|[A-Za-z]{3,9}\.?\s?\d{4}|\d{4})(\s*·\s*.+)?$/;
+
+export function middotParts(raw: string): string[] {
+  return raw.split('·').map((p) => p.trim()).filter(Boolean);
+}
+
 export const DURATION_ONLY_PATTERN =
   /^~?\d+\s*(yrs?|years?)(\s+\d+\s*(mos?|months?))?$|^~?\d+\s*(mos?|months?)$/i;
 
@@ -24,6 +31,12 @@ export function extractLocation(
   extras: string[],
 ): { location?: string; locationType?: string; remainingExtras: string[] } {
   if (extras.length === 0) return { remainingExtras: extras };
+
+  const bare = extras[0].trim();
+  if (LOCATION_TYPE_VALUES.has(bare)) {
+    return { locationType: bare, remainingExtras: extras.slice(1) };
+  }
+
   const { primary, secondary } = splitMiddotField(extras[0]);
   if (secondary && LOCATION_TYPE_VALUES.has(secondary)) {
     return { location: primary, locationType: secondary, remainingExtras: extras.slice(1) };
