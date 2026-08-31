@@ -4,6 +4,8 @@ import { parseAbout } from './parsers/aboutParser';
 import { parseTopcard } from './parsers/topcardParser';
 import { CARD_IDS, SECTION_REGISTRY, cardsFor, cardServesOneSection } from './sectionRegistry';
 import { DETAILS_PAGE_SIZE } from './client';
+
+const MAX_DETAIL_PAGES = 40;
 import { ProfileData, SectionEnvelope } from '../types/profile';
 import { SectionKey } from '../types/sections';
 
@@ -16,6 +18,8 @@ export type DetailsRequest =
       sectionRef: string;
       profileId: string;
       refererPath: string;
+      start: number;
+      count: number;
     };
 
 export interface FetchResult {
@@ -66,31 +70,76 @@ async function expandSection(
   }
 
   try {
-    const request =
-      spec.kind === 'html'
-        ? ({ kind: 'html', path: spec.path } as const)
-        : ({
-            kind: 'pagination',
-            pagerId: spec.pagerId,
-            screenId: spec.screenId,
-            sectionRef: `com.linkedin.sdui.profile.card.ref${profileId}${spec.sectionRefSuffix}`,
-            profileId: profileId as string,
-            refererPath: spec.refererPath,
-          } as const);
+    if (spec.kind === 'html') {
+      const page = await fetchers.fetchDetails(vanityName, { kind: 'html', path: spec.path });
+      const full = definition.detailsParser(page.text, warnings);
+      if (full.length === 0) {
+        warnings.push(`${definition.key}: details response contained no entries; kept the preview`);
+        return { items: preview, expanded: false, cached: page.cached };
+      }
+      if (full.length >= DETAILS_PAGE_SIZE) {
+        warnings.push(
+          `${definition.key}: details page returned a full page (${full.length}); ` +
+            'later pages load on scroll and are not retrievable from the HTML',
+        );
+        return { items: full, expanded: false, cached: page.cached };
+      }
+      return { items: full, expanded: true, cached: page.cached };
+    }
 
-    const page = await fetchers.fetchDetails(vanityName, request);
-    const full = definition.detailsParser(page.text, warnings);
-    if (full.length === 0) {
+    const all: unknown[] = [];
+    const seen = new Set<string>();
+    let cachedAll = true;
+    let start = 0;
+    let pages = 0;
+
+    while (pages < MAX_DETAIL_PAGES) {
+      const page = await fetchers.fetchDetails(vanityName, {
+        kind: 'pagination',
+        pagerId: spec.pagerId,
+        screenId: spec.screenId,
+        sectionRef: `com.linkedin.sdui.profile.card.ref${profileId}${spec.sectionRefSuffix}`,
+        profileId: profileId as string,
+        refererPath: spec.refererPath,
+        start,
+        count: DETAILS_PAGE_SIZE,
+      });
+      cachedAll = cachedAll && page.cached;
+      pages += 1;
+
+      const parsed = definition.detailsParser(page.text, warnings);
+
+      if (parsed.length === 0) {
+        if (start === 0) {
+          start += DETAILS_PAGE_SIZE;
+          continue;
+        }
+        break;
+      }
+
+      for (const entry of parsed) {
+        const key = JSON.stringify(entry);
+        if (!seen.has(key)) {
+          seen.add(key);
+          all.push(entry);
+        }
+      }
+
+      if (parsed.length < DETAILS_PAGE_SIZE) break;
+      start += DETAILS_PAGE_SIZE;
+    }
+
+    if (all.length === 0) {
       warnings.push(`${definition.key}: details response contained no entries; kept the preview`);
-      return { items: preview, expanded: false, cached: page.cached };
+      return { items: preview, expanded: false, cached: cachedAll };
     }
-    if (full.length >= DETAILS_PAGE_SIZE) {
+    if (pages >= MAX_DETAIL_PAGES) {
       warnings.push(
-        `${definition.key}: details returned a full page (${full.length}); more entries may exist`,
+        `${definition.key}: stopped after ${MAX_DETAIL_PAGES} pages; more entries may exist`,
       );
-      return { items: full, expanded: false, cached: page.cached };
+      return { items: all, expanded: false, cached: cachedAll };
     }
-    return { items: full, expanded: true, cached: page.cached };
+    return { items: all, expanded: true, cached: cachedAll };
   } catch (err) {
     warnings.push(`${definition.key}: expansion failed (${describe(err)}); kept the preview`);
     return { items: preview, expanded: false, cached: true };

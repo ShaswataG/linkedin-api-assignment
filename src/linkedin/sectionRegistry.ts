@@ -4,7 +4,7 @@ import { parseCertifications } from './parsers/certificationsParser';
 import { parseEducation, parseEducationDetails } from './parsers/educationParser';
 import { parseExperience, parseExperienceDetails } from './parsers/experienceParser';
 import { parseProjects } from './parsers/projectParser';
-import { parseSkills } from './parsers/skillsParser';
+import { parseSkills, parseSkillsDetails } from './parsers/skillsParser';
 import { parseVolunteer } from './parsers/volunteerParser';
 
 const PREFIX = 'com.linkedin.sdui.generated.profile.dsl.impl.';
@@ -65,7 +65,14 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
     cardId: CARD_IDS.belowActivityPart7,
     marker: SECTION_MARKER_SUFFIXES.skills,
     parse: (tree) => parseSkills(tree),
-    details: { kind: 'html', path: 'details/skills/' },
+    details: {
+      kind: 'pagination',
+      pagerId: 'com.linkedin.sdui.pagers.profile.details.skills',
+      screenId: 'com.linkedin.sdui.flagshipnav.profile.ProfileSkillsDetails',
+      sectionRefSuffix: 'SkillsDetailsSection',
+      refererPath: 'details/skills/',
+    },
+    detailsParser: (body, warnings) => parseSkillsDetails(body, warnings),
   },
 ];
 

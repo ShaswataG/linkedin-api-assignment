@@ -90,7 +90,7 @@ export async function fetchDetailsPage(
   return res.text();
 }
 
-export const DETAILS_PAGE_SIZE = 50;
+export const DETAILS_PAGE_SIZE = 10;
 
 export interface DetailsPageRequest {
   vanityName: string;
