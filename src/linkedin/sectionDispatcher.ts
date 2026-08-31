@@ -216,3 +216,18 @@ export function sectionHasShowAll(
   walk(scope);
   return found;
 }
+
+const CARD_REF_PREFIX = 'com.linkedin.sdui.profile.card.ref';
+
+export function extractProfileId(cardTree: unknown, markerSuffix: string): string | undefined {
+  const subtree = findSectionSubtree(cardTree, markerSuffix) as Record<string, unknown> | null;
+  if (!subtree) return undefined;
+
+  for (const key of [subtree.componentkey, subtree.componentKey, subtree.id]) {
+    if (typeof key !== 'string') continue;
+    if (!key.startsWith(CARD_REF_PREFIX) || !key.endsWith(markerSuffix)) continue;
+    const id = key.slice(CARD_REF_PREFIX.length, key.length - markerSuffix.length);
+    if (id.length > 0) return id;
+  }
+  return undefined;
+}

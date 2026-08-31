@@ -207,7 +207,7 @@ export async function buildProfile(
     }
 
     try {
-      const items = definition.parse(tree, warnings);
+      let items = definition.parse(tree, warnings);
       const totalCount = getSectionTotalCount(tree, definition.marker);
 
       const cardTruncated =
