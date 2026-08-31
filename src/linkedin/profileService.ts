@@ -117,12 +117,22 @@ async function expandSection(
         break;
       }
 
+      let added = 0;
       for (const entry of parsed) {
         const key = JSON.stringify(entry);
         if (!seen.has(key)) {
           seen.add(key);
           all.push(entry);
+          added += 1;
         }
+      }
+
+      if (added === 0) {
+        warnings.push(
+          `${definition.key}: page at start=${start} repeated earlier entries; ` +
+            'stopped paging (the list may be incomplete)',
+        );
+        break;
       }
 
       if (parsed.length < DETAILS_PAGE_SIZE) break;

@@ -33,9 +33,9 @@ export function withCache(
       cached(`${vanityName}:document`, () => raw.fetchDocument(vanityName)),
     fetchDetails: (vanityName, request) =>
       cached(
-        `${vanityName}:details:${request.kind}:${
-          request.kind === 'html' ? request.path : request.pagerId
-        }`,
+        request.kind === 'html'
+          ? `${vanityName}:details:html:${request.path}`
+          : `${vanityName}:details:pagination:${request.pagerId}:${request.start}`,
         () => raw.fetchDetails(vanityName, request),
       ),
     invalidate: (vanityName) => {
