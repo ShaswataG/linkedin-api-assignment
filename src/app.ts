@@ -21,7 +21,15 @@ export function createApp(
   app.use('/', createHealthRouter());
   app.use('/api', rateLimit(config.rateLimitPerMinute), createProfileRouter({ fetchers }));
 
-  app.use((req, _res, next) => next(new NotFoundError(`No route for ${req.method} ${req.path}`)));
+
+  app.use((req, res, next) => {
+    if (req.path === '/docs' || req.path.startsWith('/docs/')) {
+      next(new NotFoundError(`No route for ${req.method} ${req.path}`));
+      return;
+    }
+    res.redirect(302, '/docs');
+  });
+
   app.use(errorHandler);
 
   return app;
