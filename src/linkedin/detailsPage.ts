@@ -11,6 +11,8 @@ export interface DetailItem {
   leaves: string[];
   /** Per-role skills, when the page links them. */
   skills: string[];
+  /** How many further skills LinkedIn withheld behind "+N skills". */
+  unnamedSkillCount: number;
 }
 
 /**
@@ -57,16 +59,46 @@ const CHROME_LINES = [
   /^LinkedIn helped me get this job/i,
 ];
 
-function stripSkillLinks(blockHtml: string): { html: string; skills: string[] } {
+const UNNAMED_SKILLS = /^\+(\d+)\s+skills?$/i;
+
+export function splitSkillSummary(summary: string): { names: string[]; unnamedCount: number } {
+  const names: string[] = [];
+  let unnamedCount = 0;
+
+  for (const raw of summary.split(/,| and /i)) {
+    const part = raw.trim();
+    if (!part) continue;
+    const more = UNNAMED_SKILLS.exec(part);
+    if (more) {
+      unnamedCount += Number(more[1]);
+      continue;
+    }
+    if (!names.includes(part)) names.push(part);
+  }
+
+  return { names, unnamedCount };
+}
+
+function stripSkillLinks(blockHtml: string): {
+  html: string;
+  skills: string[];
+  unnamedSkillCount: number;
+} {
   const skills: string[] = [];
+  let unnamedSkillCount = 0;
+
   const html = blockHtml.replace(SKILL_LINK, (_whole, inner: string) => {
     for (const leaf of textLeaves(inner)) {
-      // The overlay link also contains an icon label; keep only the list.
-      if (leaf.length > 1 && !/^Skills:?$/i.test(leaf)) skills.push(leaf);
+      // The overlay link also carries an icon label; keep only the summary.
+      if (leaf.length <= 1 || /^Skills:?$/i.test(leaf)) continue;
+      const { names, unnamedCount } = splitSkillSummary(leaf);
+      for (const name of names) if (!skills.includes(name)) skills.push(name);
+      unnamedSkillCount += unnamedCount;
     }
     return ' ';
   });
-  return { html, skills };
+
+  return { html, skills, unnamedSkillCount };
 }
 
 /**
@@ -85,7 +117,9 @@ export function extractDetailItems(html: string): DetailItem[] {
   const items: DetailItem[] = [];
   boundaries.forEach((start, i) => {
     const end = i + 1 < boundaries.length ? boundaries[i + 1] : html.length;
-    const { html: withoutSkills, skills } = stripSkillLinks(html.slice(start, end));
+    const { html: withoutSkills, skills, unnamedSkillCount } = stripSkillLinks(
+      html.slice(start, end),
+    );
 
     let leaves = textLeaves(withoutSkills);
 
@@ -96,7 +130,7 @@ export function extractDetailItems(html: string): DetailItem[] {
 
     leaves = leaves.filter((l) => !CHROME_LINES.some((p) => p.test(l)));
 
-    if (leaves.length > 0) items.push({ leaves, skills });
+    if (leaves.length > 0) items.push({ leaves, skills, unnamedSkillCount });
   });
 
   return items;

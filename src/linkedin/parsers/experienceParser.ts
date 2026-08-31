@@ -344,8 +344,10 @@ export function parseExperienceDetails(
 
   const withSkills = items.filter((item) => item.leaves.length > 0);
   entries.forEach((entry, i) => {
-    const skills = withSkills[i]?.skills ?? [];
-    if (skills.length > 0) entry.skills = skills;
+    const item = withSkills[i];
+    if (!item) return;
+    if (item.skills.length > 0) entry.skills = item.skills;
+    if (item.unnamedSkillCount > 0) entry.unnamedSkillCount = item.unnamedSkillCount;
   });
 
   return entries;

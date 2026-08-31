@@ -22,6 +22,7 @@ export interface ExperienceEntry {
   location?: string;
   locationType?: string;
   skills?: string[];
+  unnamedSkillCount?: number;
   positions: Position[];
 }
 
