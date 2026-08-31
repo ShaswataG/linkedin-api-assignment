@@ -19,6 +19,14 @@ export interface SectionDefinition<T = unknown> {
   cardId: string;
   marker: string;
   parse(tree: unknown, warnings: string[]): T[];
-  detailsPath?: string;
-  detailsParser?: (html: string, warnings: string[]) => T[];
+  details?:
+    | { kind: 'html'; path: string }
+    | {
+        kind: 'pagination';
+        pagerId: string;
+        screenId: string;
+        sectionRefSuffix: string;
+        refererPath: string;
+      };
+  detailsParser?: (body: string, warnings: string[]) => T[];
 }

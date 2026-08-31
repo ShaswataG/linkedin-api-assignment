@@ -1,7 +1,12 @@
 import { Config } from '../config';
 import { TtlCache } from './cache';
 import { UpstreamLimiter } from './upstreamLimiter';
-import { fetchDetailsPage, fetchProfileCard, fetchProfileDocument } from './client';
+import {
+  fetchDetailsPage,
+  fetchDetailsPagination,
+  fetchProfileCard,
+  fetchProfileDocument,
+} from './client';
 import { CachedFetchers, withCache } from './cachedFetchers';
 
 export function createLiveFetchers(config: Config): CachedFetchers {
@@ -9,8 +14,19 @@ export function createLiveFetchers(config: Config): CachedFetchers {
     {
       fetchCard: (vanityName, cardId) => fetchProfileCard(vanityName, cardId, config.session),
       fetchDocument: (vanityName) => fetchProfileDocument(vanityName, config.session),
-      fetchDetails: (vanityName, detailsPath) =>
-        fetchDetailsPage(vanityName, detailsPath, config.session),
+      fetchDetails: (vanityName, request) =>
+        request.kind === 'html'
+          ? fetchDetailsPage(vanityName, request.path, config.session)
+          : fetchDetailsPagination(
+              {
+                vanityName,
+                profileId: request.profileId,
+                pagerId: request.pagerId,
+                screenId: request.screenId,
+                sectionRef: request.sectionRef,
+              },
+              config.session,
+            ),
     },
     new TtlCache<string>(config.cacheTtlMs),
     new UpstreamLimiter(config.upstreamMinIntervalMs),

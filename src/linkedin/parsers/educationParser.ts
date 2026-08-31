@@ -1,6 +1,8 @@
 import { findSectionSubtree, SECTION_MARKER_SUFFIXES } from '../sectionDispatcher';
 import { extractOrderedTextLeaves } from '../flightDecoder';
 import { DATE_LEAF_PATTERN, splitDateRange } from '../fieldUtils';
+import { decodeFlightResponse } from '../flightDecoder';
+import { findComponentItems } from '../sectionDispatcher';
 
 export interface EducationEntry {
   institution: string;
@@ -24,6 +26,31 @@ const isLabelledExtra = (s: string) => GRADE_PREFIX.test(s) || ACTIVITIES_PREFIX
 function looksLikeHeaderLeaf(s: string): boolean {
   const t = s.trim();
   return t.length > 0 && t.length <= 100 && !/[.!?]$/.test(t) && !isLabelledExtra(t) && !isDateLeaf(t);
+}
+
+function buildEducationEntry(
+  header: string[],
+  dateRange: string,
+  extras: string[],
+): EducationEntry {
+  const gradeLeaf = extras.find((x) => GRADE_PREFIX.test(x));
+  const activitiesLeaf = extras.find((x) => ACTIVITIES_PREFIX.test(x));
+  const description = extras.filter((x) => !isLabelledExtra(x)).join(' ');
+
+  const { startDate, endDate } = !dateRange
+    ? { startDate: '', endDate: '' }
+    : SINGLE_DATE_LEAF_PATTERN.test(dateRange)
+      ? { startDate: '', endDate: dateRange }
+      : splitDateRange(dateRange);
+  return {
+    institution: header[0] ?? '',
+    degree: header[1],
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+    grade: gradeLeaf?.replace(GRADE_PREFIX, '').trim() || undefined,
+    activities: activitiesLeaf?.replace(ACTIVITIES_PREFIX, '').trim() || undefined,
+    description: description || undefined,
+  };
 }
 
 export function parseEducation(cardTree: unknown): EducationEntry[] {
@@ -55,25 +82,7 @@ export function parseEducation(cardTree: unknown): EducationEntry[] {
     return start;
   };
 
-  const build = (header: string[], dateRange: string, extras: string[]): EducationEntry => {
-    const gradeLeaf = extras.find((x) => GRADE_PREFIX.test(x));
-    const activitiesLeaf = extras.find((x) => ACTIVITIES_PREFIX.test(x));
-    const description = extras.filter((x) => !isLabelledExtra(x)).join(' ');
-    const { startDate, endDate } = !dateRange
-      ? { startDate: '', endDate: '' }
-      : SINGLE_DATE_LEAF_PATTERN.test(dateRange)
-        ? { startDate: '', endDate: dateRange }
-        : splitDateRange(dateRange);
-    return {
-      institution: header[0] ?? '',
-      degree: header[1],
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      grade: gradeLeaf?.replace(GRADE_PREFIX, '').trim() || undefined,
-      activities: activitiesLeaf?.replace(ACTIVITIES_PREFIX, '').trim() || undefined,
-      description: description || undefined,
-    };
-  };
+  const build = buildEducationEntry;
 
   const entries: EducationEntry[] = [];
 
@@ -115,5 +124,60 @@ export function parseEducation(cardTree: unknown): EducationEntry[] {
     entries.push(build(recovered, '', []));
   }
 
+  return entries;
+}
+
+const UUID_ITEM_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const DETAILS_CHROME = [/^Skills:$/i, /^Education$/, /^Show all/i, /^…$/, /^more$/i];
+
+export function parseEducationDetails(
+  flightText: string,
+  warnings: string[] = [],
+): EducationEntry[] {
+  let tree: unknown;
+  try {
+    tree = decodeFlightResponse(flightText);
+  } catch (err) {
+    warnings.push(`education: could not decode the details response (${String(err)})`);
+    return [];
+  }
+
+  const entries: EducationEntry[] = [];
+
+  for (const item of findComponentItems(tree, UUID_ITEM_KEY)) {
+    const leaves = extractOrderedTextLeaves(item)
+      .map((l) => l.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim())
+      .filter((l) => l.length > 0 && !DETAILS_CHROME.some((p) => p.test(l)));
+    if (leaves.length === 0) continue;
+
+    const dateIndex = leaves.findIndex(isDateLeaf);
+    if (dateIndex === -1) {
+      const header = leaves.filter(looksLikeHeaderLeaf).slice(0, 2);
+      entries.push(
+        buildEducationEntry(header, '', leaves.filter((l) => !header.includes(l))),
+      );
+      continue;
+    }
+
+    let headStart = dateIndex;
+    while (
+      headStart - 1 >= 0 &&
+      dateIndex - (headStart - 1) <= 2 &&
+      looksLikeHeaderLeaf(leaves[headStart - 1])
+    ) {
+      headStart -= 1;
+    }
+
+    entries.push(
+      buildEducationEntry(
+        leaves.slice(headStart, dateIndex),
+        leaves[dateIndex],
+        leaves.slice(dateIndex + 1),
+      ),
+    );
+  }
+
+  if (entries.length === 0) warnings.push('education: details response contained no entries');
   return entries;
 }

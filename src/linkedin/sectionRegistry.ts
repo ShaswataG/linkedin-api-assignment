@@ -1,7 +1,7 @@
 import { SectionDefinition } from '../types/sections';
 import { SECTION_MARKER_SUFFIXES } from './sectionDispatcher';
 import { parseCertifications } from './parsers/certificationsParser';
-import { parseEducation } from './parsers/educationParser';
+import { parseEducation, parseEducationDetails } from './parsers/educationParser';
 import { parseExperience, parseExperienceDetails } from './parsers/experienceParser';
 import { parseProjects } from './parsers/projectParser';
 import { parseSkills } from './parsers/skillsParser';
@@ -22,7 +22,7 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
     cardId: CARD_IDS.experienceOnly,
     marker: 'ExperienceTopLevel',
     parse: (tree, warnings) => parseExperience(tree, warnings),
-    detailsPath: 'details/experience/',
+    details: { kind: 'html', path: 'details/experience/' },
     detailsParser: (html, warnings) => parseExperienceDetails(html, warnings),
   },
   {
@@ -30,35 +30,42 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
     cardId: CARD_IDS.belowActivityPart1,
     marker: SECTION_MARKER_SUFFIXES.education,
     parse: (tree) => parseEducation(tree),
-    detailsPath: 'details/education/',
+    details: {
+      kind: 'pagination',
+      pagerId: 'com.linkedin.sdui.pagers.profile.details.education',
+      screenId: 'com.linkedin.sdui.flagshipnav.profile.ProfileEducationDetails',
+      sectionRefSuffix: 'EducationDetailsSection',
+      refererPath: 'details/education/',
+    },
+    detailsParser: (body, warnings) => parseEducationDetails(body, warnings),
   },
   {
     key: 'certifications',
     cardId: CARD_IDS.belowActivityPart1,
     marker: SECTION_MARKER_SUFFIXES.certifications,
     parse: (tree) => parseCertifications(tree),
-    detailsPath: 'details/certifications/',
+    details: { kind: 'html', path: 'details/certifications/' },
   },
   {
     key: 'volunteer',
     cardId: CARD_IDS.belowActivityPart1,
     marker: SECTION_MARKER_SUFFIXES.volunteer,
     parse: (tree) => parseVolunteer(tree),
-    detailsPath: 'details/volunteering/',
+    details: { kind: 'html', path: 'details/volunteering/' },
   },
   {
     key: 'projects',
     cardId: CARD_IDS.belowActivityPart1,
     marker: SECTION_MARKER_SUFFIXES.projects,
     parse: (tree) => parseProjects(tree),
-    detailsPath: 'details/projects/',
+    details: { kind: 'html', path: 'details/projects/' },
   },
   {
     key: 'skills',
     cardId: CARD_IDS.belowActivityPart7,
     marker: SECTION_MARKER_SUFFIXES.skills,
     parse: (tree) => parseSkills(tree),
-    detailsPath: 'details/skills/',
+    details: { kind: 'html', path: 'details/skills/' },
   },
 ];
 

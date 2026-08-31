@@ -89,3 +89,83 @@ export async function fetchDetailsPage(
   }
   return res.text();
 }
+
+export const DETAILS_PAGE_SIZE = 50;
+
+export interface DetailsPageRequest {
+  vanityName: string;
+  profileId: string;
+  pagerId: string;
+  screenId: string;
+  sectionRef: string;
+  start?: number;
+  count?: number;
+  refererPath?: string;
+}
+
+export async function fetchDetailsPagination(
+  request: DetailsPageRequest,
+  session: LinkedInSession,
+): Promise<string> {
+  const url =
+    `https://www.linkedin.com/flagship-web/rsc-action/actions/pagination` +
+    `?sduiid=${encodeURIComponent(request.pagerId)}` +
+    `&parentSpanId=${encodeURIComponent(generateSpanId())}`;
+
+  const payload = {
+    vanityName: request.vanityName,
+    profileId: request.profileId,
+    start: request.start ?? 0,
+    count: request.count ?? DETAILS_PAGE_SIZE,
+    detailSectionReplaceableComponentRef: request.sectionRef,
+  };
+  const requestedArguments = {
+    $type: 'proto.sdui.actions.requests.RequestedArguments',
+    requestedStateKeys: [],
+    payload,
+    requestMetadata: { $type: 'proto.sdui.common.RequestMetadata' },
+  };
+
+  const body = {
+    pagerId: request.pagerId,
+    clientArguments: {
+      ...requestedArguments,
+      states: [],
+      screenId: request.screenId,
+      knownTemplateIds: [],
+    },
+    paginationRequest: {
+      $type: 'proto.sdui.actions.requests.PaginationRequest',
+      pagerId: request.pagerId,
+      trigger: {
+        $case: 'itemDistanceTrigger',
+        itemDistanceTrigger: {
+          $type: 'proto.sdui.actions.requests.ItemDistanceTrigger',
+          preloadDistance: 3,
+          preloadLength: 250,
+        },
+      },
+      retryCount: 2,
+      requestedArguments,
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'csrf-token': session.csrfToken,
+      origin: 'https://www.linkedin.com',
+      referer: `https://www.linkedin.com/in/${request.vanityName}/${request.refererPath ?? ''}`,
+      cookie: session.cookie,
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`LinkedIn returned ${res.status} for details pager ${request.pagerId}`);
+  }
+  return res.text();
+}

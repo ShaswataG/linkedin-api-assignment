@@ -1,10 +1,22 @@
 import { decodeFlightResponse } from './flightDecoder';
-import { getSectionTotalCount, sectionHasShowAll } from './sectionDispatcher';
+import { extractProfileId, getSectionTotalCount, sectionHasShowAll } from './sectionDispatcher';
 import { parseAbout } from './parsers/aboutParser';
 import { parseTopcard } from './parsers/topcardParser';
 import { CARD_IDS, SECTION_REGISTRY, cardsFor, cardServesOneSection } from './sectionRegistry';
+import { DETAILS_PAGE_SIZE } from './client';
 import { ProfileData, SectionEnvelope } from '../types/profile';
 import { SectionKey } from '../types/sections';
+
+export type DetailsRequest =
+  | { kind: 'html'; path: string }
+  | {
+      kind: 'pagination';
+      pagerId: string;
+      screenId: string;
+      sectionRef: string;
+      profileId: string;
+      refererPath: string;
+    };
 
 export interface FetchResult {
   text: string;
@@ -14,7 +26,7 @@ export interface FetchResult {
 export interface ProfileFetchers {
   fetchCard(vanityName: string, cardId: string): Promise<FetchResult>;
   fetchDocument(vanityName: string): Promise<FetchResult>;
-  fetchDetails?(vanityName: string, detailsPath: string): Promise<FetchResult>;
+  fetchDetails?(vanityName: string, request: DetailsRequest): Promise<FetchResult>;
 }
 
 export interface BuildProfileOptions {
@@ -32,32 +44,56 @@ function describe(err: unknown): string {
 async function expandSection(
   definition: (typeof SECTION_REGISTRY)[number],
   vanityName: string,
+  profileId: string | undefined,
   fetchers: ProfileFetchers,
   preview: unknown[],
   warnings: string[],
-): Promise<unknown[]> {
-  if (!definition.detailsPath || !definition.detailsParser) {
+): Promise<{ items: unknown[]; expanded: boolean; cached: boolean }> {
+  const spec = definition.details;
+  if (!spec || !definition.detailsParser) {
     warnings.push(
       `${definition.key}: expansion is not yet available; returning the profile-card preview`,
     );
-    return preview;
+    return { items: preview, expanded: false, cached: true };
   }
   if (!fetchers.fetchDetails) {
     warnings.push(`${definition.key}: expansion unavailable (no details fetcher configured)`);
-    return preview;
+    return { items: preview, expanded: false, cached: true };
+  }
+  if (spec.kind === 'pagination' && !profileId) {
+    warnings.push(`${definition.key}: expansion needs a profile id that could not be derived`);
+    return { items: preview, expanded: false, cached: true };
   }
 
   try {
-    const page = await fetchers.fetchDetails(vanityName, definition.detailsPath);
+    const request =
+      spec.kind === 'html'
+        ? ({ kind: 'html', path: spec.path } as const)
+        : ({
+            kind: 'pagination',
+            pagerId: spec.pagerId,
+            screenId: spec.screenId,
+            sectionRef: `com.linkedin.sdui.profile.card.ref${profileId}${spec.sectionRefSuffix}`,
+            profileId: profileId as string,
+            refererPath: spec.refererPath,
+          } as const);
+
+    const page = await fetchers.fetchDetails(vanityName, request);
     const full = definition.detailsParser(page.text, warnings);
     if (full.length === 0) {
-      warnings.push(`${definition.key}: details page returned no entries; kept the preview`);
-      return preview;
+      warnings.push(`${definition.key}: details response contained no entries; kept the preview`);
+      return { items: preview, expanded: false, cached: page.cached };
     }
-    return full;
+    if (full.length >= DETAILS_PAGE_SIZE) {
+      warnings.push(
+        `${definition.key}: details returned a full page (${full.length}); more entries may exist`,
+      );
+      return { items: full, expanded: false, cached: page.cached };
+    }
+    return { items: full, expanded: true, cached: page.cached };
   } catch (err) {
     warnings.push(`${definition.key}: expansion failed (${describe(err)}); kept the preview`);
-    return preview;
+    return { items: preview, expanded: false, cached: true };
   }
 }
 
@@ -71,7 +107,7 @@ export async function buildProfile(
   let allCached = true;
   let anySucceeded = false;
 
- let topcard: Awaited<ReturnType<typeof parseTopcard>> | undefined;
+  let topcard: Awaited<ReturnType<typeof parseTopcard>> | undefined;
   try {
     const doc = await fetchers.fetchDocument(vanityName);
     allCached = allCached && doc.cached;
@@ -133,9 +169,17 @@ export async function buildProfile(
 
       let expanded = false;
       if (expand.has(definition.key)) {
-        const before = items;
-        items = await expandSection(definition, vanityName, fetchers, items, warnings);
-        expanded = items !== before;
+        const result = await expandSection(
+          definition,
+          vanityName,
+          extractProfileId(tree, definition.marker),
+          fetchers,
+          items,
+          warnings,
+        );
+        items = result.items;
+        expanded = result.expanded;
+        allCached = allCached && result.cached;
       }
 
       sections[definition.key] = {
