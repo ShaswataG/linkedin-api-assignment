@@ -14,8 +14,7 @@
 | 6 | [API documentation](#6-api-documentation) | Endpoints, contracts, examples |
 | 7 | [Testing](#7-testing) | Offline fixture suites |
 | 8 | [Known limitations](#8-known-limitations) | What does not work yet |
-| 9 | [If this were a product](#9-if-this-were-a-product) | Why I would not ship this at scale |
-| 10 | [Summary](#10-summary) | The short version |
+| 9 | [Summary](#10-summary) | The short version |
 
 **Jump to the detail:**
 [2.2 Environment variables](#22-environment-variables) ·
@@ -767,35 +766,7 @@ Stated plainly rather than buried.
 
 ---
 
-## 9. If this were a product
-
-Reverse-engineering LinkedIn directly is not how I would ship this at scale,
-and it is worth being explicit about why.
-
-The Proxycurl precedent above is the short version: LinkedIn pursues
-scraping-as-a-service operators, not just individual accounts.
-
-| Provider | Model | Approx. pricing |
-|---|---|---|
-| Bright Data | Real-time scraper + licensed datasets | from ~$1.50 / 1K records |
-| Apify | Marketplace of scraper actors | ~$6–10 / 1K profiles |
-| ScrapIn | Real-time lookup API | ~$1.50–4 / 1K |
-| People Data Labs | Bulk enrichment dataset | ~$0.20–0.28 / record |
-| Unipile | Account-based live API | from ~€49/mo |
-
-The honest takeaway: these either rely on licensed/aggregated data — accepting
-staleness for legal safety — or use your own account under the hood and carry
-exactly the ban exposure this project does, hidden behind a subscription.
-**No vendor makes live, arbitrary-profile LinkedIn data both real-time and
-risk-free.** That trade-off is structural, not a gap in this implementation.
-
-For anything beyond low-volume internal use I would default to a
-licensed-dataset provider, accepting the freshness cost in exchange for not
-carrying unbounded legal and account exposure.
-
----
-
-## 10. Summary
+## 9. Summary
 
 - Purely reverse-engineered, **no browser** anywhere in the runtime
 - Decodes React Flight; parses positionally-encoded data using structural
