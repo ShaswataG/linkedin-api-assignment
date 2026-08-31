@@ -1,4 +1,13 @@
-/node_modules
-/dist
-./*.js
-./*.har
+**/node_modules
+**/dist/
+**/*.har
+**/*.txt
+
+# Captured LinkedIn request body
+src/linkedin/requestBodyTemplate.ts
+src/linkedin/requestBodyTemplate.json
+
+# Session credentials
+.env
+.env.*
+!.env.example
