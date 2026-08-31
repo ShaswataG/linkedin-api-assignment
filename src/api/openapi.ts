@@ -116,17 +116,17 @@ export const openApiDocument = {
             in: 'query',
             required: true,
             description: [
-              'Full LinkedIn profile URL, e.g. `https://www.linkedin.com/in/williamhgates`.',
+              'Full LinkedIn profile URL, e.g. `https://www.linkedin.com/in/shaswata-gogoi`.',
               'A scheme-less form (`linkedin.com/in/x`) and regional hosts (`in.linkedin.com`)',
               'are accepted.',
               '',
-              '**A bare word such as `williamhgates` is rejected here on purpose.** Profile',
+              '**A bare word such as `shaswata-gogoi` is rejected here on purpose.** Profile',
               'targeting is by vanity name alone, so a typo would silently return a',
               'DIFFERENT member\'s profile rather than a 404. Use the path parameter on the',
               'section endpoint if you want to pass a bare vanity name.',
             ].join('\n'),
             schema: { type: 'string' },
-            example: 'https://www.linkedin.com/in/williamhgates',
+            example: 'https://www.linkedin.com/in/shaswata-gogoi',
           },
           {
             name: 'expand',
@@ -170,28 +170,36 @@ export const openApiDocument = {
                   preview: {
                     summary: 'Preview (no expand) — note the truncated sections',
                     value: {
-                      profileUrl: 'https://www.linkedin.com/in/example',
-                      vanityName: 'example',
-                      name: 'Chandrama Gogoi',
-                      headline: 'Engineering@Gojek | Ex-JPMC | Full stack developer',
-                      location: 'Bengaluru, Karnataka, India',
+                      profileUrl: 'https://www.linkedin.com/in/shaswata-gogoi',
+                      vanityName: 'shaswata-gogoi',
+                      name: 'Shaswata Gogoi',
+                      headline: 'Engineering @Attack Capital (YC W22)',
+                      location: 'Guwahati, Assam, India',
                       pronouns: 'He/Him',
-                      profileImageUrl: 'https://media.licdn.com/dms/image/v2/...',
-                      bannerImageUrl: 'https://media.licdn.com/dms/image/v2/...',
-                      about: 'Engineer focused on full-stack and platform work…',
+                      profileImageUrl:
+                        'https://media.licdn.com/dms/image/v2/D4D03AQEBAAL1EjCIYA/profile-displayphoto-crop_800_800/…',
+                      about:
+                        'Over the past 1.5+ years, I have been building production-grade applications at fast-paced startups. Currently working as a software developer at Attack Capital (YC-backed)…',
                       experience: {
                         items: [
                           {
-                            companyName: 'GoTo Group',
-                            employmentType: 'Full-time',
-                            totalDuration: '4 yrs 2 mos',
-                            location: 'Bengaluru, Karnataka, India',
-                            locationType: 'Hybrid',
+                            companyName: 'Attack Capital',
+                            totalDuration: '8 mos',
+                            location: 'New York, United States',
+                            locationType: 'Remote',
                             positions: [
                               {
-                                title: 'Engineering Manager',
-                                startDate: 'Apr 2026',
+                                title: 'SDE',
+                                employmentType: 'Full-time',
+                                startDate: 'Jun 2026',
                                 endDate: 'Present',
+                                duration: '3 mos',
+                              },
+                              {
+                                title: 'Full Stack Developer',
+                                employmentType: 'Internship',
+                                startDate: 'Jan 2026',
+                                endDate: 'May 2026',
                                 duration: '5 mos',
                               },
                             ],
@@ -199,51 +207,109 @@ export const openApiDocument = {
                         ],
                         truncated: true,
                       },
-                      education: { items: [], truncated: true },
-                      skills: {
-                        items: [{ name: 'Team Management', demonstratedIn: ['Senior Software Engineer at GoTo Group'] }],
-                        totalCount: 56,
+                      education: {
+                        items: [
+                          {
+                            institution: 'Jorhat Engineering College',
+                            degree: 'Bachelor of Technology - BTech, Computer Science and Engineering',
+                            startDate: 'Oct 2022',
+                            endDate: 'Jul 2026',
+                          },
+                        ],
                         truncated: true,
                       },
-                      certifications: { items: [], truncated: false },
-                      volunteer: { items: [], truncated: false },
+                      skills: {
+                        items: [
+                          { name: 'Chrome Extensions', demonstratedIn: ['SDE at Attack Capital'] },
+                          { name: 'Twilio', demonstratedIn: ['SDE at Attack Capital'] },
+                        ],
+                        totalCount: 39,
+                        truncated: true,
+                      },
+                      certifications: {
+                        items: [
+                          {
+                            name: 'SQL (Intermediate) Skills Certification Test',
+                            issuer: 'HackerRank',
+                            issuedDate: 'Jun 2025',
+                            credentialId: '40FB6BFD2D39',
+                          },
+                        ],
+                        totalCount: 8,
+                        truncated: true,
+                      },
+                      volunteer: {
+                        items: [
+                          {
+                            role: 'Technical Director',
+                            organization: 'DCODE',
+                            startDate: 'Aug 2025',
+                            endDate: 'May 2026',
+                            duration: '10 mos',
+                          },
+                        ],
+                        totalCount: 4,
+                        truncated: true,
+                      },
                       projects: { items: [], truncated: false },
                       extractionWarnings: [],
-                      fetchedAt: '2026-08-31T10:00:00.000Z',
+                      fetchedAt: '2026-08-31T14:11:23.123Z',
                       cached: false,
                     },
                   },
                   expanded: {
                     summary: 'expand=skills — truncated clears once the full list is retrieved',
                     value: {
-                      profileUrl: 'https://www.linkedin.com/in/example',
-                      vanityName: 'example',
-                      name: 'Chandrama Gogoi',
+                      profileUrl: 'https://www.linkedin.com/in/shaswata-gogoi',
+                      vanityName: 'shaswata-gogoi',
+                      name: 'Shaswata Gogoi',
                       skills: {
                         items: [
-                          { name: 'Team Management', demonstratedIn: ['Senior Software Engineer at GoTo Group'] },
-                          { name: 'Protocol Buffers', demonstratedIn: ['Sanctions Portal'] },
-                          { name: 'gRPC', endorsementCount: 3 },
+                          { name: 'Chrome Extensions', demonstratedIn: ['SDE at Attack Capital'] },
+                          { name: 'Prisma', demonstratedIn: ['2 experiences at Attack Capital'] },
+                          {
+                            name: 'Next.js',
+                            demonstratedIn: ['4 experiences at Attack Capital and 2 other companies'],
+                          },
+                          {
+                            name: 'SQL',
+                            demonstratedIn: [
+                              'SQL (Basic) Skills Certification Test',
+                              'SQL (Intermediate) Skills Certification Test',
+                            ],
+                          },
+                          { name: 'FastAPI' },
                         ],
-                        totalCount: 56,
+                        totalCount: 39,
                         truncated: false,
                       },
                       extractionWarnings: [],
-                      fetchedAt: '2026-08-31T10:00:00.000Z',
+                      fetchedAt: '2026-08-31T14:11:23.123Z',
                       cached: false,
                     },
                   },
                   degraded: {
                     summary: 'Partial failure — one section warns, the request still succeeds',
                     value: {
-                      profileUrl: 'https://www.linkedin.com/in/example',
-                      vanityName: 'example',
-                      name: 'Chandrama Gogoi',
-                      certifications: { items: [], truncated: true },
+                      profileUrl: 'https://www.linkedin.com/in/shaswata-gogoi',
+                      vanityName: 'shaswata-gogoi',
+                      name: 'Shaswata Gogoi',
+                      certifications: {
+                        items: [
+                          {
+                            name: 'Postman API Fundamentals Student Expert',
+                            issuer: 'Canvas Credentials (Badgr)',
+                            issuedDate: 'Dec 2024',
+                            credentialId: '675eb9d8e2438a4c735185c7',
+                          },
+                        ],
+                        totalCount: 8,
+                        truncated: true,
+                      },
                       extractionWarnings: [
                         'certifications: expansion is not yet available; returning the profile-card preview',
                       ],
-                      fetchedAt: '2026-08-31T10:00:00.000Z',
+                      fetchedAt: '2026-08-31T14:11:23.123Z',
                       cached: true,
                     },
                   },
@@ -280,7 +346,7 @@ export const openApiDocument = {
               'The profile\'s vanity name — the last path segment of its URL. A bare name is ' +
               'accepted here because the position in the path makes it unambiguous.',
             schema: { type: 'string' },
-            example: 'williamhgates',
+            example: 'shaswata-gogoi',
           },
           {
             name: 'section',
@@ -503,7 +569,7 @@ export const openApiDocument = {
           },
           endDate: { type: 'string', example: 'Jul 2026' },
           grade: { type: 'string', example: '9.16 CGPA' },
-          activities: { type: 'string', example: 'Computer Science Association' },
+          activities: { type: 'string', example: 'Robotics Club' },
           description: nullableString,
         },
       },
@@ -512,7 +578,7 @@ export const openApiDocument = {
         type: 'object',
         required: ['name'],
         properties: {
-          name: { type: 'string', example: 'Protocol Buffers' },
+          name: { type: 'string', example: 'Chrome Extensions' },
           endorsementCount: { type: 'integer', example: 53 },
           endorsedBy: {
             type: 'array',
@@ -559,9 +625,9 @@ export const openApiDocument = {
         type: 'object',
         required: ['title', 'startDate', 'endDate'],
         properties: {
-          title: { type: 'string', example: 'Project OneTap' },
-          startDate: { type: 'string', example: 'Oct 2020' },
-          endDate: { type: 'string', example: 'Oct 2021' },
+          title: { type: 'string', example: 'Internal Analytics Dashboard' },
+          startDate: { type: 'string', example: 'Jan 2025' },
+          endDate: { type: 'string', example: 'Apr 2025' },
           associatedWith: { type: 'string' },
           description: { type: 'string' },
         },
