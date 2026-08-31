@@ -1,9 +1,45 @@
 import { REQUEST_BODY_TEMPLATE, TEMPLATE_VANITY_NAME } from './requestBodyTemplate';
 
+function retargetStrings(node: unknown, from: string, to: string): unknown {
+  if (typeof node === 'string') return node.split(from).join(to);
+  if (Array.isArray(node)) return node.map((item) => retargetStrings(item, from, to));
+  if (node && typeof node === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(node)) {
+      out[key] = retargetStrings(value, from, to);
+    }
+    return out;
+  }
+  return node;
+}
+
 export function buildComponentRequestBody(vanityName: string): string {
-  return REQUEST_BODY_TEMPLATE
-    .split(`"vanityName":"${TEMPLATE_VANITY_NAME}"`)
-    .join(`"vanityName":"${vanityName}"`);
+  try {
+    const template = JSON.parse(REQUEST_BODY_TEMPLATE) as {
+      clientArguments?: { payload?: Record<string, unknown> };
+    };
+    const templatePayload = template?.clientArguments?.payload;
+
+    const sectionArgs = templatePayload?.replaceableSectionArgs as
+      | { vanityName?: unknown }
+      | undefined;
+    const capturedVanity =
+      (typeof sectionArgs?.vanityName === 'string' && sectionArgs.vanityName) ||
+      (TEMPLATE_VANITY_NAME || '');
+
+    const retargeted = capturedVanity
+      ? (retargetStrings(template, capturedVanity, vanityName) as typeof template)
+      : template;
+
+    const payload = retargeted?.clientArguments?.payload;
+    if (payload) payload.vanityName = vanityName;
+
+    return JSON.stringify(retargeted);
+  } catch {
+    return REQUEST_BODY_TEMPLATE.split(`"vanityName":"${TEMPLATE_VANITY_NAME}"`).join(
+      `"vanityName":"${vanityName}"`,
+    );
+  }
 }
 
 export function generateSpanId(): string {
