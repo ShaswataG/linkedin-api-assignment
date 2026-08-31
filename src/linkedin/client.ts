@@ -128,17 +128,47 @@ export async function fetchDetailsPage(
 
 export const DETAILS_PAGE_SIZE = 10;
 
+/** Client version LinkedIn's web app reports; sent back in its tracking headers. */
+const LINKEDIN_CLIENT_VERSION = '0.2.7003';
+
+/**
+ * A page-instance tracking id in LinkedIn's format: base64 of 16 random bytes
+ * (e.g. "15N3zXUpT0qZsVFbPY20bQ=="). Purely an observability token — a fresh
+ * one per request is what the browser does too.
+ */
+function generateTrackingId(): string {
+  const bytes = Buffer.alloc(16);
+  for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  return bytes.toString('base64');
+}
+
+/** Everything the details pagination endpoint needs, derived from the card. */
 export interface DetailsPageRequest {
   vanityName: string;
   profileId: string;
   pagerId: string;
   screenId: string;
-  sectionRef: string;
+  /**
+   * Pager-specific payload fields. Education sends
+   * `detailSectionReplaceableComponentRef`; Skills sends `filter`. Passing the
+   * wrong one leaves paging stuck on the first page.
+   */
+  payloadExtras?: Record<string, unknown>;
   start?: number;
   count?: number;
   refererPath?: string;
+  /** `x-li-anchor-page-key` identifying the screen being paged. */
+  anchorPageKey?: string;
 }
 
+/**
+ * Fetches a section's FULL list from the details pagination endpoint.
+ *
+ * This is the good path: the `/details/{section}/` HTML page does not contain
+ * the list for every section — it arrives from this endpoint in the same
+ * Flight format as the profile cards. Same decoder, same field classifiers,
+ * and real `start`/`count` paging instead of scraping a rendered page.
+ */
 export async function fetchDetailsPagination(
   request: DetailsPageRequest,
   session: LinkedInSession,
@@ -153,7 +183,7 @@ export async function fetchDetailsPagination(
     profileId: request.profileId,
     start: request.start ?? 0,
     count: request.count ?? DETAILS_PAGE_SIZE,
-    detailSectionReplaceableComponentRef: request.sectionRef,
+    ...(request.payloadExtras ?? {}),
   };
   const requestedArguments = {
     $type: 'proto.sdui.actions.requests.RequestedArguments',
@@ -189,11 +219,35 @@ export async function fetchDetailsPagination(
   const res = await fetch(url, {
     method: 'POST',
     headers: {
+      accept: '*/*',
+      'accept-language': 'en-US,en;q=0.9',
       'content-type': 'application/json',
       'csrf-token': session.csrfToken,
       origin: 'https://www.linkedin.com',
       referer: `https://www.linkedin.com/in/${request.vanityName}/${request.refererPath ?? ''}`,
       cookie: session.cookie,
+      // LinkedIn's own client sends these on every pagination request. They
+      // are omitted from the component POSTs, which work without them — but a
+      // pager that received none of them returned the FIRST page for every
+      // offset, so the screen context they carry appears to matter here.
+      // `x-li-rsc-stream` in particular selects the incremental response.
+      'x-li-rsc-stream': 'true',
+      ...(request.anchorPageKey
+        ? {
+            'x-li-anchor-page-key': request.anchorPageKey,
+            'x-li-page-instance': `urn:li:page:${request.anchorPageKey};${generateTrackingId()}`,
+          }
+        : {}),
+      'x-li-application-version': LINKEDIN_CLIENT_VERSION,
+      'x-li-track': JSON.stringify({
+        clientVersion: LINKEDIN_CLIENT_VERSION,
+        mpVersion: LINKEDIN_CLIENT_VERSION,
+        osName: 'web',
+        timezoneOffset: 5.5,
+        timezone: 'Asia/Calcutta',
+        deviceFormFactor: 'DESKTOP',
+        mpName: 'voyager-web',
+      }),
       'user-agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
     },

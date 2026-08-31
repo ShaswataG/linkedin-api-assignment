@@ -34,8 +34,12 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
       kind: 'pagination',
       pagerId: 'com.linkedin.sdui.pagers.profile.details.education',
       screenId: 'com.linkedin.sdui.flagshipnav.profile.ProfileEducationDetails',
-      sectionRefSuffix: 'EducationDetailsSection',
       refererPath: 'details/education/',
+      anchorPageKey: 'd_flagship3_profile_view_base_education_details',
+      payloadExtras: (profileId) => ({
+        detailSectionReplaceableComponentRef:
+          `com.linkedin.sdui.profile.card.ref${profileId}EducationDetailsSection`,
+      }),
     },
     detailsParser: (body, warnings) => parseEducationDetails(body, warnings),
   },
@@ -68,9 +72,13 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
     details: {
       kind: 'pagination',
       pagerId: 'com.linkedin.sdui.pagers.profile.details.skills',
-      screenId: 'com.linkedin.sdui.flagshipnav.profile.ProfileSkillsDetails',
-      sectionRefSuffix: 'SkillsDetailsSection',
+      // Singular "Skill" — verified against a captured request; the plural
+      // form was a guess and paging did not advance past the first page.
+      screenId: 'com.linkedin.sdui.flagshipnav.profile.ProfileSkillDetails',
       refererPath: 'details/skills/',
+      anchorPageKey: 'd_flagship3_profile_view_base_skills_details',
+      // Skills takes a category filter and NO section ref.
+      payloadExtras: () => ({ filter: 'ProfileSkillCategory_ALL' }),
     },
     detailsParser: (body, warnings) => parseSkillsDetails(body, warnings),
   },

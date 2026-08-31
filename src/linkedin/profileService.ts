@@ -15,9 +15,10 @@ export type DetailsRequest =
       kind: 'pagination';
       pagerId: string;
       screenId: string;
-      sectionRef: string;
+      payloadExtras: Record<string, unknown>;
       profileId: string;
       refererPath: string;
+      anchorPageKey: string;
       start: number;
       count: number;
     };
@@ -98,9 +99,10 @@ async function expandSection(
         kind: 'pagination',
         pagerId: spec.pagerId,
         screenId: spec.screenId,
-        sectionRef: `com.linkedin.sdui.profile.card.ref${profileId}${spec.sectionRefSuffix}`,
+        payloadExtras: spec.payloadExtras ? spec.payloadExtras(profileId as string) : {},
         profileId: profileId as string,
         refererPath: spec.refererPath,
+        anchorPageKey: spec.anchorPageKey,
         start,
         count: DETAILS_PAGE_SIZE,
       });
