@@ -64,3 +64,28 @@ export async function fetchProfileDocument(
 
   return res.text();
 }
+
+export async function fetchDetailsPage(
+  vanityName: string,
+  detailsPath: string,
+  session: LinkedInSession,
+): Promise<string> {
+  const path = detailsPath.replace(/^\/+|\/+$/g, '');
+  const url = `https://www.linkedin.com/in/${encodeURIComponent(vanityName)}/${path}/`;
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'accept-language': 'en-US,en;q=0.9',
+      cookie: session.cookie,
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`LinkedIn returned ${res.status} for ${url}`);
+  }
+  return res.text();
+}

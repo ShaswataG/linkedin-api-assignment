@@ -2,7 +2,7 @@ import { SectionDefinition } from '../types/sections';
 import { SECTION_MARKER_SUFFIXES } from './sectionDispatcher';
 import { parseCertifications } from './parsers/certificationsParser';
 import { parseEducation } from './parsers/educationParser';
-import { parseExperience } from './parsers/experienceParser';
+import { parseExperience, parseExperienceDetails } from './parsers/experienceParser';
 import { parseProjects } from './parsers/projectParser';
 import { parseSkills } from './parsers/skillsParser';
 import { parseVolunteer } from './parsers/volunteerParser';
@@ -23,6 +23,7 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
     marker: 'ExperienceTopLevel',
     parse: (tree, warnings) => parseExperience(tree, warnings),
     detailsPath: 'details/experience/',
+    detailsParser: (html, warnings) => parseExperienceDetails(html, warnings),
   },
   {
     key: 'education',

@@ -14,6 +14,7 @@ export interface FetchResult {
 export interface ProfileFetchers {
   fetchCard(vanityName: string, cardId: string): Promise<FetchResult>;
   fetchDocument(vanityName: string): Promise<FetchResult>;
+  fetchDetails?(vanityName: string, detailsPath: string): Promise<FetchResult>;
 }
 
 export interface BuildProfileOptions {
@@ -26,6 +27,38 @@ function emptyEnvelope<T>(): SectionEnvelope<T> {
 
 function describe(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+async function expandSection(
+  definition: (typeof SECTION_REGISTRY)[number],
+  vanityName: string,
+  fetchers: ProfileFetchers,
+  preview: unknown[],
+  warnings: string[],
+): Promise<unknown[]> {
+  if (!definition.detailsPath || !definition.detailsParser) {
+    warnings.push(
+      `${definition.key}: expansion is not yet available; returning the profile-card preview`,
+    );
+    return preview;
+  }
+  if (!fetchers.fetchDetails) {
+    warnings.push(`${definition.key}: expansion unavailable (no details fetcher configured)`);
+    return preview;
+  }
+
+  try {
+    const page = await fetchers.fetchDetails(vanityName, definition.detailsPath);
+    const full = definition.detailsParser(page.text, warnings);
+    if (full.length === 0) {
+      warnings.push(`${definition.key}: details page returned no entries; kept the preview`);
+      return preview;
+    }
+    return full;
+  } catch (err) {
+    warnings.push(`${definition.key}: expansion failed (${describe(err)}); kept the preview`);
+    return preview;
+  }
 }
 
 export async function buildProfile(
@@ -91,17 +124,16 @@ export async function buildProfile(
     try {
       const items = definition.parse(tree, warnings);
       const totalCount = getSectionTotalCount(tree, definition.marker);
-      const truncated = totalCount !== undefined && items.length < totalCount;
 
       if (expand.has(definition.key)) {
-        warnings.push(
-          definition.detailsParser
-            ? `${definition.key}: expansion requested but returned no additional items`
-            : `${definition.key}: expansion is not yet available; returning the profile-card preview`,
-        );
+        items = await expandSection(definition, vanityName, fetchers, items, warnings);
       }
 
-      sections[definition.key] = { items, totalCount, truncated };
+      sections[definition.key] = {
+        items,
+        totalCount,
+        truncated: totalCount !== undefined && items.length < totalCount,
+      };
     } catch (err) {
       warnings.push(`${definition.key}: ${describe(err)}`);
       sections[definition.key] = emptyEnvelope();

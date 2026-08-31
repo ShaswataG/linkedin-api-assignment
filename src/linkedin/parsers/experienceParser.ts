@@ -10,6 +10,7 @@ import {
 } from '../fieldUtils';
 import { findEntityCollectionItems } from '../sectionDispatcher';
 import { extractOrderedTextLeaves } from '../flightDecoder';
+import { extractDetailItems } from '../detailsPage';
 
 const isDateLeaf = (s: string) => DATE_LEAF_PATTERN.test(s);
 const isDurationLeaf = (s: string) => DURATION_ONLY_PATTERN.test(s);
@@ -203,9 +204,17 @@ export function parseExperience(cardTree: unknown, warnings: string[] = []): Exp
     return segmentExperienceLeaves(extractOrderedTextLeaves(cardTree));
   }
 
+  return parseExperienceItems(items.map((item) => extractOrderedTextLeaves(item)), warnings);
+}
+
+
+export function parseExperienceItems(
+  rawItemLeaves: string[][],
+  warnings: string[] = [],
+): ExperienceEntry[] {
   const entries: ExperienceEntry[] = [];
-  for (const item of items) {
-    const leaves = cleanItemLeaves(extractOrderedTextLeaves(item));
+  for (const raw of rawItemLeaves) {
+    const leaves = cleanItemLeaves(raw);
     if (leaves.length === 0) continue;
 
     const grouped = isGroupedItem(leaves);
@@ -314,6 +323,30 @@ export function segmentExperienceLeaves(leaves: string[]): ExperienceEntry[] {
     // Leading noise (e.g. the literal section header text "Experience") — discard.
     i += 1;
   }
+
+  return entries;
+}
+
+export function parseExperienceDetails(
+  html: string,
+  warnings: string[] = [],
+): ExperienceEntry[] {
+  const items = extractDetailItems(html);
+  if (items.length === 0) {
+    warnings.push('experience: details page contained no entries');
+    return [];
+  }
+
+  const entries = parseExperienceItems(
+    items.map((item) => item.leaves),
+    warnings,
+  );
+
+  const withSkills = items.filter((item) => item.leaves.length > 0);
+  entries.forEach((entry, i) => {
+    const skills = withSkills[i]?.skills ?? [];
+    if (skills.length > 0) entry.skills = skills;
+  });
 
   return entries;
 }

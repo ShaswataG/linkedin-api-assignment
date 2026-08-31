@@ -116,6 +116,10 @@ export function sectionHasContent(cardTree: unknown, markerSuffix: string): bool
 }
 
 export function findEntityCollectionItems(subtree: unknown): unknown[] {
+  return findComponentItems(subtree, /^entity-collection-item-/);
+}
+
+export function findComponentItems(subtree: unknown, pattern: RegExp): unknown[] {
   const items: unknown[] = [];
 
   function walk(node: unknown): void {
@@ -125,15 +129,16 @@ export function findEntityCollectionItems(subtree: unknown): unknown[] {
     }
 
     if (node && typeof node === 'object') {
-      const componentkey = (node as Record<string, unknown>).componentkey;
-      if (typeof componentkey === 'string' && /^entity-collection-item-/.test(componentkey)) {
+      const record = node as Record<string, unknown>;
+      const key = record.componentkey ?? record.componentKey;
+      if (typeof key === 'string' && pattern.test(key)) {
         items.push(node);
         return; // don't recurse further into a matched item — avoids
         // false nested matches; sibling items are still found normally
         // since this only stops descent into THIS node, not the walk
         // over the array/object that contains its siblings.
       }
-      for (const value of Object.values(node)) walk(value);
+      for (const value of Object.values(record)) walk(value);
     }
   }
 

@@ -5,6 +5,7 @@ import { FetchResult, ProfileFetchers } from './profileService';
 export interface RawFetchers {
   fetchCard(vanityName: string, cardId: string): Promise<string>;
   fetchDocument(vanityName: string): Promise<string>;
+  fetchDetails(vanityName: string, detailsPath: string): Promise<string>;
 }
 
 export interface CachedFetchers extends ProfileFetchers {
@@ -30,6 +31,10 @@ export function withCache(
       cached(`${vanityName}:${cardId}`, () => raw.fetchCard(vanityName, cardId)),
     fetchDocument: (vanityName) =>
       cached(`${vanityName}:document`, () => raw.fetchDocument(vanityName)),
+    fetchDetails: (vanityName, detailsPath) =>
+      cached(`${vanityName}:details:${detailsPath}`, () =>
+        raw.fetchDetails(vanityName, detailsPath),
+      ),
     invalidate: (vanityName) => {
       cache.deleteByPrefix(`${vanityName}:`);
     },
