@@ -3,6 +3,7 @@ import { Config } from './config';
 import { ProfileFetchers } from './linkedin/profileService';
 import { createProfileRouter } from './api/routes/profile.routes';
 import { createHealthRouter } from './api/routes/health.routes';
+import { createDocsRouter } from './api/routes/docs.routes';
 import { errorHandler } from './api/middleware/errorHandler';
 import { rateLimit } from './api/middleware/rateLimit';
 import { NotFoundError } from './api/errors';
@@ -16,6 +17,7 @@ export function createApp(
   app.disable('x-powered-by');
   app.use(express.json());
 
+  app.use('/', createDocsRouter());
   app.use('/', createHealthRouter());
   app.use('/api', rateLimit(config.rateLimitPerMinute), createProfileRouter({ fetchers }));
 
