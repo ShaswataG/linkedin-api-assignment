@@ -1,4 +1,4 @@
-import { Position, ExperienceEntry } from '../../api/routes/profile';
+import { Position, ExperienceEntry } from '../../types/profile';
 import {
   DATE_RANGE_PATTERN,
   DATE_LEAF_PATTERN,
