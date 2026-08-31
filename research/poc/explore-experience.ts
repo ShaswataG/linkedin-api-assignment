@@ -2,10 +2,7 @@ import { decodeFlightResponse } from '../../src/linkedin/flightDecoder';
 import { parseExperience } from '../../src/linkedin/parsers/experienceParser';
 import { loadCardFromHar } from './loadCardFromHar';
 
-// Regression fixtures: `sp35` (known-good in CLAUDE.md — 5 entries, 2 grouped)
-// and `shaswata-gogoi` (5 entries, 2 grouped, exercising the company-level
-// location and standalone employment-type variants).
-const HAR_PATH = process.argv[2] ?? 'har_collection/arpitbhayani_full_profile.har';
+const HAR_PATH = process.argv[2] ?? 'har_collection/barry-a-6410b4432_full_profile.har';
 
 function main() {
   const raw = loadCardFromHar(HAR_PATH, 'profileCardsExperienceOnly');

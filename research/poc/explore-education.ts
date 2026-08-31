@@ -3,12 +3,7 @@ import { getSectionTotalCount, SECTION_MARKER_SUFFIXES } from '../../src/linkedi
 import { parseEducation } from '../../src/linkedin/parsers/educationParser';
 import { loadCardFromHar, PART1_WITHOUT_EXP } from './loadCardFromHar';
 
-// Regression fixture: profile `shaswata-gogoi`, whose second education entry
-// has NO date range ("Shrimanta Shankar Academy, Guwahati" / "Senior
-// Secondary"). That exercises the `recoverTrailingDatelessEntry` path — the
-// same path CLAUDE.md's padamkataria known-good covers, but reproducible
-// offline, since no captured HAR holds padamkataria's Part1WithoutExp card.
-const HAR_PATH = process.argv[2] ?? 'har_collection/arpitbhayani_full_profile.har';
+const HAR_PATH = process.argv[2] ?? 'har_collection/barry-a-6410b4432_full_profile.har';
 
 function main() {
   const raw = loadCardFromHar(HAR_PATH, PART1_WITHOUT_EXP);

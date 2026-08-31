@@ -1,22 +1,6 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-/**
- * Loads a captured component-card response out of a HAR file, so exploration
- * and regression scripts can run against real LinkedIn data WITHOUT a live
- * session cookie.
- *
- * Why this exists rather than calling `fetchProfileCard`: a regression test
- * that hits the network is neither deterministic (LinkedIn's payload changes
- * between renders — componentkeys are per-render UUIDs) nor safe to re-run
- * freely (every run spends real quota against the backing account, and the
- * ban risk is treated as a first-class constraint on this project). It also
- * keeps session credentials out of source entirely.
- *
- * HAR bodies for these endpoints come back base64-encoded because LinkedIn
- * serves them as `application/octet-stream` rather than a text mime type —
- * DevTools only stores `content.text` verbatim for types it considers text.
- */
 
 export function readHar(harPath: string): any {
   const text = readFileSync(resolve(harPath), 'utf-8');
@@ -92,7 +76,6 @@ export function loadCardFromHar(harPath: string, componentIdSuffix: string): str
   );
 }
 
-/** The card that bundles Education, Certifications, Volunteer and Projects. */
 export const PART1_WITHOUT_EXP = 'profileCardsBelowActivityPart1WithoutExp';
 
 export function loadDocumentFromHar(harPath: string): string {
