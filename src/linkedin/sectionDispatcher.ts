@@ -89,7 +89,12 @@ export function getSectionTotalCount(
       //          value: { $case: 'intValue', intValue } }
       const id = (((record.key as any)?.key)?.value)?.id;
       const intValue = (record.value as any)?.intValue;
-      if (typeof id === 'string' && countIdPattern.test(id) && typeof intValue === 'number') {
+      if (
+        typeof id === 'string' &&
+        countIdPattern.test(id) &&
+        typeof intValue === 'number' &&
+        intValue > 0
+      ) {
         found = intValue;
         return;
       }
@@ -173,4 +178,41 @@ export async function discoverBelowActivitySections(
   }
 
   return results;
+}
+
+const SHOW_ALL_LABEL = /^Show all\b/i;
+const NOT_A_SECTION_LINK = /\bdetails for\b/i;
+
+export function sectionHasShowAll(
+  cardTree: unknown,
+  markerSuffix: string,
+  options: { allowCardLevel?: boolean } = {},
+): boolean {
+  const scope = options.allowCardLevel ? cardTree : findSectionSubtree(cardTree, markerSuffix);
+  if (!scope) return false;
+
+  let found = false;
+  function walk(node: unknown): void {
+    if (found || !node) return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    if (typeof node !== 'object') return;
+    for (const value of Object.values(node as Record<string, unknown>)) {
+      if (found) return;
+      if (typeof value === 'string') {
+        const text = value.trim();
+        if (SHOW_ALL_LABEL.test(text) && !NOT_A_SECTION_LINK.test(text)) {
+          found = true;
+          return;
+        }
+      } else {
+        walk(value);
+      }
+    }
+  }
+
+  walk(scope);
+  return found;
 }

@@ -65,3 +65,7 @@ export const SECTION_REGISTRY: SectionDefinition<any>[] = [
 export function cardsFor(sections: SectionDefinition[]): string[] {
   return [...new Set(sections.map((s) => s.cardId))];
 }
+
+export function cardServesOneSection(cardId: string): boolean {
+  return SECTION_REGISTRY.filter((s) => s.cardId === cardId).length === 1;
+}

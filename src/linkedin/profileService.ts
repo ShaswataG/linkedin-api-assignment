@@ -1,8 +1,8 @@
 import { decodeFlightResponse } from './flightDecoder';
-import { getSectionTotalCount } from './sectionDispatcher';
+import { getSectionTotalCount, sectionHasShowAll } from './sectionDispatcher';
 import { parseAbout } from './parsers/aboutParser';
 import { parseTopcard } from './parsers/topcardParser';
-import { CARD_IDS, SECTION_REGISTRY, cardsFor } from './sectionRegistry';
+import { CARD_IDS, SECTION_REGISTRY, cardsFor, cardServesOneSection } from './sectionRegistry';
 import { ProfileData, SectionEnvelope } from '../types/profile';
 import { SectionKey } from '../types/sections';
 
@@ -125,14 +125,25 @@ export async function buildProfile(
       const items = definition.parse(tree, warnings);
       const totalCount = getSectionTotalCount(tree, definition.marker);
 
+      const cardTruncated =
+        (totalCount !== undefined && items.length < totalCount) ||
+        sectionHasShowAll(tree, definition.marker, {
+          allowCardLevel: cardServesOneSection(definition.cardId),
+        });
+
+      let expanded = false;
       if (expand.has(definition.key)) {
+        const before = items;
         items = await expandSection(definition, vanityName, fetchers, items, warnings);
+        expanded = items !== before;
       }
 
       sections[definition.key] = {
         items,
         totalCount,
-        truncated: totalCount !== undefined && items.length < totalCount,
+        truncated: expanded
+          ? totalCount !== undefined && items.length < totalCount
+          : cardTruncated,
       };
     } catch (err) {
       warnings.push(`${definition.key}: ${describe(err)}`);
