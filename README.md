@@ -111,16 +111,11 @@ rather than a file.
 ```bash
 npm install
 
-npm test        # offline test suites — no network, no credentials needed
 npm run dev     # development server, reads .env
 
 # production
 npm run build && npm start
 ```
-
-**Run `npm test` first.** It needs no credentials and makes no network calls —
-every suite runs against captured fixtures — so it confirms the checkout is
-healthy before anything touches LinkedIn.
 
 ### 2.4 Verify the server
 
